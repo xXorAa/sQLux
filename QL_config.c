@@ -332,7 +332,7 @@ void InitROM(void)
 	pc_inst = ReadWord(pc);
 
 	if (pc_inst != 0x0C93) {
-		fprintf(stderr, "InitROM: reached from incorrect instruction %x\n", pc_inst);
+		fprintf(stderr, "InitROM: reached from incorrect instruction %x,%x\n", pc, pc_inst);
 		exit;
 	}
 
