@@ -10,6 +10,8 @@
 #include "QL_screen.h"
 #include "SDL2screen.h"
 
+void *m68k_memspace;
+
 static int is_screen(uint32_t addr)
 {
 	if ((addr >= qlscreen.qm_lo) && (addr < qlscreen.qm_hi)) {
@@ -32,7 +34,8 @@ static int is_hw(uint32_t addr)
 
 	return 0;
 }
-rw8 ReadByte(aw32 addr)
+
+unsigned int ReadByte(unsigned int addr)
 {
 	addr &= ADDR_MASK;
 
@@ -43,10 +46,10 @@ rw8 ReadByte(aw32 addr)
 		return ReadHWByte(addr);
 	}
 
-	return *((w8 *)theROM + addr);
+	return *(uint8_t *)(m68k_memspace + addr);
 }
 
-rw16 ReadWord(aw32 addr)
+unsigned int ReadWord(unsigned int addr)
 {
 	addr &= ADDR_MASK;
 
@@ -57,10 +60,11 @@ rw16 ReadWord(aw32 addr)
 		return ((w16)ReadHWWord(addr));
 	}
 
-	return (w16)RW((w16 *)((Ptr)theROM + addr)); /* make sure it is signed */
+	//printf("ReadWord %x:%x\n", addr, SDL_SwapBE16(*(uint16_t *)(m68k_memspace + addr)));
+	return SDL_SwapBE16(*(uint16_t *)(m68k_memspace + addr));
 }
 
-rw32 ReadLong(aw32 addr)
+unsigned int ReadLong(unsigned int addr)
 {
 	addr &= ADDR_MASK;
 
@@ -71,10 +75,10 @@ rw32 ReadLong(aw32 addr)
 		return ((w32)ReadHWLong(addr));
 	}
 
-	return (w32)RL((Ptr)theROM + addr); /* make sure is is signed */
+	return SDL_SwapBE32(*(uint32_t *)(m68k_memspace + addr));
 }
 
-void WriteByte(aw32 addr,aw8 d)
+void WriteByte(unsigned int addr, unsigned int d)
 {
 	addr &= ADDR_MASK;
 
@@ -91,7 +95,7 @@ void WriteByte(aw32 addr,aw8 d)
 	}
 }
 
-void WriteWord(aw32 addr,aw16 d)
+void WriteWord(unsigned int addr, unsigned int d)
 {
 	addr &= ADDR_MASK;
 
@@ -108,7 +112,7 @@ void WriteWord(aw32 addr,aw16 d)
 	}
 }
 
-void WriteLong(aw32 addr,aw32 d)
+void WriteLong(unsigned int addr, unsigned int d)
 {
 	addr &= ADDR_MASK;
 

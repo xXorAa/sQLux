@@ -186,25 +186,12 @@ extern Cond (*ConditionTrue[16])(void) ;
 
 rw8 ReadHWByte(aw32 )  REGP1;
 void WriteHWByte(aw32, aw8) REGP1;
-STATIC rw8 ReadByte(aw32 ) REGP1;
-STATIC rw16 ReadWord(aw32 ) REGP1;
-STATIC rw32 ReadLong(aw32 ) REGP1;
-STATIC void WriteByte(aw32 ,aw8 ) REGP2;
-STATIC void WriteWord(aw32 ,aw16 ) REGP2;
-STATIC void WriteLong(aw32 ,aw32 ) REGP2;
 
 rw16 GetSR(void);
 void PutSR(aw16 ) REGP1;
 rw16 BusErrorCode(aw16 ) REGP1;
 void SetPC(w32 )  REGP1;
 void SetPCX(int )  REGP1;
-
-STATIC rw8 ModifyAtEA_b(ashort ,ashort )  REGP2;
-STATIC rw16 ModifyAtEA_w(ashort ,ashort ) REGP2;
-STATIC rw32 ModifyAtEA_l(ashort ,ashort ) REGP2;
-STATIC void RewriteEA_b(aw8 )  REGP1;
-STATIC void RewriteEA_w(aw16 ) REGP1;
-STATIC void RewriteEA_l(aw32 ) REGP1;
 
 void FrameInt(void);
 void WriteInt(aw8) REGP1;

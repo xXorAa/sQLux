@@ -161,8 +161,8 @@
 /* If ON, CPU will call the instruction hook callback before every
  * instruction.
  */
-#define M68K_INSTRUCTION_HOOK       OPT_OFF
-#define M68K_INSTRUCTION_CALLBACK(pc) your_instruction_hook_function(pc)
+#define M68K_INSTRUCTION_HOOK         OPT_SPECIFY_HANDLER
+#define M68K_INSTRUCTION_CALLBACK(pc) sqlux_hook_pc(pc)
 
 
 /* If ON, the CPU will emulate the 4-byte prefetch queue of a real 68000 */
@@ -206,5 +206,14 @@
 /* ======================================================================== */
 /* ============================== END OF FILE ============================= */
 /* ======================================================================== */
+
+#define m68k_read_memory_8 ReadByte
+#define m68k_read_memory_16 ReadWord
+#define m68k_read_memory_32 ReadLong
+#define m68k_write_memory_8 WriteByte
+#define m68k_write_memory_16 WriteWord
+#define m68k_write_memory_32 WriteLong
+#define m68k_read_disassembler_16 ReadWord
+#define m68k_read_disassembler_32 ReadLong
 
 #endif /* M68KCONF__HEADER */

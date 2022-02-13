@@ -6,7 +6,8 @@ message(STATUS "Using toolchain file: ${CMAKE_TOOLCHAIN_FILE}.")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DLINUX -DUSE_IOSZ -DDO_GRAB \
 	-DNEWSERIAL -DSH_MEM -DXSCREEN \
-    -DEVM_SCR -D_GNU_SOURCE -D_XOPEN_SOURCE -DMOUSE -DQVFS")
+    -DEVM_SCR -D_GNU_SOURCE -D_XOPEN_SOURCE -DMOUSE -DQVFS \
+    -DTRACE_FUNC")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-implicit-function-declaration -DSOUND -DIPDEV -DSERIAL -DUX_WAIT -DNEWPTY")
@@ -47,7 +48,7 @@ add_custom_target( SubmarineGitVersion
 
 find_package(SDL2 REQUIRED)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} include/ ${SDL2_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_LIST_DIR} include/ Musashi/ ${SDL2_INCLUDE_DIRS})
 
 add_executable(sqlux
     Init.c
@@ -92,6 +93,11 @@ add_executable(sqlux
     ${CMAKE_CURRENT_BINARY_DIR}/version.c
     src/sqlux_windows.c
     src/sqlux_hexdump.c
+    src/sqlux_hook_pc.c
+    Musashi/m68kcpu.c
+    Musashi/m68kops.c
+    Musashi/m68kdasm.c
+    Musashi/softfloat/softfloat.c
     )
 set_source_files_properties( ${CMAKE_CURRENT_BINARY_DIR}/version.c
 PROPERTIES GENERATED TRUE)

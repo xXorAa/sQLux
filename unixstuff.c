@@ -49,6 +49,9 @@
 #include "QL_screen.h"
 #include "SDL2screen.h"
 #include "Xscreen.h"
+#include "memaccess.h"
+
+#include "m68k.h"
 
 #define TIME_DIFF 283996800
 void GetDateTime(w32 *);
@@ -813,6 +816,8 @@ void uqlxInit()
 	tzset();
 
 	theROM = malloc(RTOP);
+	m68k_memspace = theROM;
+
 	if (theROM == NULL) {
 		printf("sorry, not enough memory for a %dK QL\n", RTOP / 1024);
 		exit(1);
@@ -976,11 +981,17 @@ void uqlxInit()
 
 	g_reg = reg;
 
-	InitialSetup();
+	//InitialSetup();
+
+	printf("theROM %p\n", theROM);
+	printf("Setting up Musashi\n");
+	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
+	m68k_init();
+	m68k_pulse_reset();
 
 	if (isMinerva) {
-		reg[1] = (RTOP & ~16383) | 1;
-		SetPC(0x186);
+		m68k_set_reg(M68K_REG_D1, (RTOP & ~16383) | 1);
+		m68k_set_reg(M68K_REG_PC, 0x186);
 	}
 
 	QLdone = 0;
@@ -1002,7 +1013,10 @@ Cond CPUWork(void)
 exec:
 #endif
 	if (!speed) {
-		ExecuteChunk(3000);
+		//printf("Execute 10000\n");
+		m68k_execute(100000);
+		dosignal();
+		QLSDLRenderScreen();
 	}
 	else {
 		ExecuteChunk(300);

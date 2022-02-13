@@ -29,6 +29,9 @@
 #include "xqlmouse.h"
 #include "Xscreen.h"
 
+#include "m68k.h"
+#include "sqlux_hook_pc.h"
+
 static short ramItem = -1;
 extern int do_update;
 
@@ -107,8 +110,9 @@ static Cond InstallQemlRom(void)
 		if (!qemlPatch)
 			printf("Warning: could not patch ROM scan sequence\n");
 		if (qemlPatch) {
-			WW(((uw16 *)((Ptr)theROM + ROMINIT_CMD_ADDR)),
-			   ROMINIT_CMD_CODE);
+			//WW(((uw16 *)((Ptr)theROM + ROMINIT_CMD_ADDR)),
+			//   ROMINIT_CMD_CODE);
+			hook_callbacks[ROM_INIT_HOOK].addr = ROMINIT_CMD_ADDR;
 			WW(((uw16 *)((Ptr)theROM + MDVIO_CMD_ADDR)),
 			   MDVIO_CMD_CODE); /* device driver routines */
 			WW(((uw16 *)((Ptr)theROM + MDVO_CMD_ADDR)),
@@ -318,35 +322,19 @@ void InitROM(void)
 	char qvers[6];
 	char *initstr = "UQLX v%s, release\012      %s\012QDOS Version %s\012";
 	long sysvars, sxvars;
+	unsigned int pc, pc_inst;
 
-	if ((uintptr_t)((Ptr)gPC - (Ptr)theROM) - 2 != ROMINIT_CMD_ADDR) {
-		printf("PC %8x is not patched with ROMINIT\n",
-		       (unsigned)((uintptr_t)gPC - (uintptr_t)theROM));
-		exception = 4;
-		extraFlag = true;
-		return;
+#ifdef TRACE_FUNC
+	printf("Entered %s\n", __func__);
+#endif
+
+	pc = m68k_get_reg(NULL, M68K_REG_PC);
+	pc_inst = ReadWord(pc);
+
+	if (pc_inst != 0x0C93) {
+		fprintf(stderr, "InitROM: reached from incorrect instruction %x\n", pc_inst);
+		exit;
 	}
-#if 0
-	printf("a6=%x, basic at %x\n",aReg[6],ReadLong(0x28010));
-#endif
-
-	save_regs(saved_regs);
-
-	do_update = 1; /* flip in screen RAM */
-
-#ifdef OLD_PATCH
-	/* lea $0C000,a3 */
-	aReg[3] = 0x0c000;
-	gPC += 2;
-#else
-	WW((Ptr)gPC - 2, 0x0c93); /* restore original instruction */
-#endif
-#if 0
-	KillSound();
-	CloseSerial();
-	InitSerial();
-	ZeroKeyboardBuffer();
-#endif
 
 	/* delete old MDV drivers (for optical reasons) */
 	WriteLong(0x28048, 0);
