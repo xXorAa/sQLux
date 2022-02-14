@@ -3,6 +3,7 @@
 
 #include "m68k.h"
 #include "sqlux_hook_pc.h"
+#include "uqlx_cfg.h"
 
 void InitROM(void);
 
@@ -17,6 +18,9 @@ hook_callbacks_t hook_callbacks[ROM_MAX_HOOK] = {
 void sqlux_hook_pc(unsigned int pc)
 {
 	int i;
+
+	if (QMD.no_patch)
+		return;
 
 	for (i = 0; i < ROM_MAX_HOOK; i++) {
 		if (hook_callbacks[i].addr == pc) {
