@@ -18,6 +18,9 @@
 #include <signal.h>
 #include <time.h>
 
+#define DEBUG
+#include "sqlux_debug.h"
+
 void debug(char *);
 void debug2(char *, long);
 
@@ -168,6 +171,52 @@ w8 IntRead(void)
 	return t;
 }
 
+static int ipc_wait = 1;
+static int ipc_rcvd = 1;
+static int ipc_previous = 0x10;
+static int ipc_return;
+static int ipc_count = 0;
+
+void ipc_exec(int command)
+{
+	DEBUG_PRINT("IPC previous %x cmd: %x\n", ipc_previous, command);
+
+	switch(command) {
+	case 0x01:
+		ipc_return = 0;
+		ipc_count = 8;
+	case 0x0d:
+		ipc_wait = 1;
+		break;
+	}
+
+}
+
+void ipc_write(uint8_t d)
+{
+	int command;
+
+	if (ipc_wait) {
+		if ((d & 0x0c) == 0x0c) {
+			ipc_rcvd <<= 1;
+			if (d == 0x0c) {
+				ipc_rcvd |= 0;
+			} else {
+				ipc_rcvd |= 1;
+			}
+			DEBUG_PRINT("ipc_rcvd %x\n", ipc_rcvd);
+			if (ipc_rcvd & 0x10) {
+				command = ipc_rcvd & 0x0f;
+				ipc_rcvd = 1;
+				ipc_wait = 0;
+				ipc_exec(command);
+			}
+		}
+	} else {
+		ipc_wait = 1;
+	}
+}
+
 void WriteHWByte(aw32 addr, aw8 d)
 {
 	/*printf("write HWreg at %x val=%x\n",addr-0x18000,d);*/
@@ -189,9 +238,8 @@ void WriteHWByte(aw32 addr, aw8 d)
 		}
 		break;
 	case 0x018003:
-		debugIPC("Write to IPC link > ", d);
-		debugIPC("at (PC-2) ", (Ptr)pc - (Ptr)theROM - 2);
-		/*TRR;*/
+		DEBUG_PRINT("IPC data %x\n", d);
+		ipc_write(d);
 		break;
 	case 0x018020:
 		WriteMdvControl(d); /*TRR;*/
