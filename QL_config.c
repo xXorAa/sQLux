@@ -318,10 +318,9 @@ extern int tracetrap;
 
 void InitROM(void)
 {
-	w32 saved_regs[16];
 	char qvers[6];
 	char *initstr = "UQLX v%s, release\012      %s\012QDOS Version %s\012";
-	long sysvars, sxvars;
+	uint32_t sysvars, sxvars;
 	unsigned int pc, pc_inst;
 
 #ifdef TRACE_FUNC
@@ -333,7 +332,7 @@ void InitROM(void)
 
 	if (pc_inst != 0x0C93) {
 		fprintf(stderr, "InitROM: reached from incorrect instruction %x,%x\n", pc, pc_inst);
-		exit;
+		exit(1);
 	}
 
 	/* delete old MDV drivers (for optical reasons) */
@@ -342,26 +341,22 @@ void InitROM(void)
 	InitFileDrivers();
 	InitDrivers();
 
-#ifdef XSCREEN
-	/*printf("call init_xscreen\n");*/
 	init_xscreen();
-#endif
 
 	SchedInit();
 
 	init_bas_exts();
 
 	QLtrap(1, 0, 20000l);
-#if 0
-	printf("QDOS vars at %x, trap res=%d, RTOP=%d\n",aReg[0],reg[0],RTOP);
-#endif
 
+	/* Standard systems vars */
 	sysvars = aReg[0];
+
+	printf("sysvars: %x\n", sysvars);
+
+	/* Minerva extended vars */
 	sxvars = RL((Ptr)theROM + sysvars + 0x7c);
-#if 0
-	if (isMinerva)
-	  printf("Minerva extended vars at %x\n",sxvars);
-#endif
+
 	if (V3)
 		printf("sysvars at %x, ux RAMTOP %d, sys.ramt %d, qlscreen at %d\n",
 		       (unsigned)sysvars, RTOP, sysvar_l(20), qlscreen.qm_lo);
@@ -369,19 +364,6 @@ void InitROM(void)
 	// QDOS version
 	WL((Ptr)qvers, reg[2]);
 	qvers[4] = 0;
-
-#if 0
-	p=(Ptr)theROM+RTOP-0x07FFEl;
-	sprintf(p,initstr,uqlx_version,release,qvers);
-	WriteWord(aReg[1]=RTOP-0x08000l,strlen(p));
-
-#if 1
-	QLvector(0xd0,200000);
-#else
-	WriteLong((*sp)-=4,(w32)gPC-(w32)theROM);
-	gPC=(uw16*)((Ptr)theROM+RW((uw16*)((Ptr)theROM+0xd0)));	/* write string */
-#endif
-#endif
 
 	/* now install TKII defaults */
 
@@ -403,7 +385,6 @@ void InitROM(void)
 	}
 
 	/* link in Minerva keyboard handling */
-#if 1
 	if (isMinerva) {
 		reg[1] = 8;
 		reg[2] = 0;
@@ -418,24 +399,9 @@ void InitROM(void)
 		WW((Ptr)theROM + KBENC_CMD_ADDR, KBENC_CMD_CODE);
 		orig_kbenc = RL((Ptr)theROM + sxvars + 0x10);
 		WL((Ptr)theROM + sxvars + 0x10, KBENC_CMD_ADDR);
-#if 0
-	    printf("orig_kbenc=%x\nreplacement kbenc=%x\n",orig_kbenc,KBENC_CMD_ADDR);
-	    printf("sx_kbenc addr=%x\n",sxvars+0x10);
-#endif
 	}
-#endif
 
 	init_poll();
-
-	/* make sure it wasn't changed somewhere */
-	restore_regs(saved_regs);
-#ifdef OLD_PATCH
-	aReg[3] = 0x0c000;
-#endif
-
-#ifndef OLD_PATCH
-	qlux_table[code = 0x0c93](); /* run the original routine */
-#endif
 }
 
 #if 0
