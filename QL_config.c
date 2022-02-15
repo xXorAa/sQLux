@@ -323,6 +323,7 @@ void InitROM(void)
 	char *initstr = "UQLX v%s, release\012      %s\012QDOS Version %s\012";
 	uint32_t sysvars, sxvars;
 	unsigned int pc, pc_inst;
+	int sub1, sub2;
 
 #ifdef TRACE_FUNC
 	printf("Entered %s\n", __func__);
@@ -336,8 +337,15 @@ void InitROM(void)
 		exit(1);
 	}
 
+	sqlux_store_main_ctx();
+
+	sqlux_trap(1, 0x0);
+
+	/* Standard systems vars */
+	sysvars = m68k_get_reg(NULL, M68K_REG_A0);
+
 	/* delete old MDV drivers (for optical reasons) */
-	WriteLong(0x28048, 0);
+	WriteLong(sysvars + 0x48, 0);
 
 	InitFileDrivers();
 	InitDrivers();
@@ -348,32 +356,36 @@ void InitROM(void)
 
 	init_bas_exts();
 
-	//QLtrap(1, 0, 20000l);
-
-	sqlux_trap(1, 0);
-
-	/* Standard systems vars */
-	sysvars = m68k_get_reg(trap_ctx, M68K_REG_A0);
-
-	printf("sysvars: %x\n", sysvars);
 
 	/* Minerva extended vars */
-	sxvars = RL((Ptr)theROM + sysvars + 0x7c);
+	sxvars = ReadLong(sysvars + 0x7c);
 
 	if (V3)
 		printf("sysvars at %x, ux RAMTOP %d, sys.ramt %d, qlscreen at %d\n",
 		       (unsigned)sysvars, RTOP, sysvar_l(20), qlscreen.qm_lo);
 
 	// QDOS version
-	WL((Ptr)qvers, reg[2]);
+	WL((Ptr)qvers, m68k_get_reg(NULL, M68K_REG_D2));
 	qvers[4] = 0;
+
+	if (V3) printf("QDOS version %s\n", qvers);
+
+	if (strncmp(qvers, "1.98", 4) == 0) {
+		sub1 = ReadByte(sxvars + 74);
+		if (sub1 == 'a') {
+			sub2 = ReadByte(sxvars + 75);
+			if (V3) printf("QDOS subversion %c%c\n", sub1, sub2);
+		}
+	}
 
 	/* now install TKII defaults */
 
-	reg[1] = 0x6c;
-	reg[2] = 0;
-	QLtrap(1, 0x18, 200000);
-	if (reg[0] == 0) {
+	m68k_set_reg(M68K_REG_D1, 0x6c);
+	m68k_set_reg(M68K_REG_D2, 0);
+
+	sqlux_trap(1, 0x18);
+
+	if ( m68k_get_reg(NULL, M68K_REG_D0) == 0) {
 		if (V3)
 			printf("Initialising TK2 device defaults\n");
 		WriteLong(0x28070 + 0x3c, aReg[0]);
