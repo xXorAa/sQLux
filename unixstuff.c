@@ -52,6 +52,7 @@
 #include "memaccess.h"
 
 #include "m68k.h"
+#include "sqlux_swap_cpu.h"
 
 #define TIME_DIFF 283996800
 void GetDateTime(w32 *);
@@ -988,6 +989,16 @@ void uqlxInit()
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_init();
 	m68k_pulse_reset();
+	sqlux_allocate_main_ctx();
+	sqlux_store_main_ctx();
+
+	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
+	m68k_init();
+	m68k_pulse_reset();
+	sqlux_allocate_trap_ctx();
+	sqlux_store_trap_ctx();
+
+	sqlux_restore_main_ctx();
 
 	if (isMinerva) {
 		m68k_set_reg(M68K_REG_D1, (RTOP & ~16383) | 1);
@@ -1014,9 +1025,9 @@ exec:
 #endif
 	if (!speed) {
 		//printf("Execute 10000\n");
-		m68k_execute(100000);
-		dosignal();
-		QLSDLRenderScreen();
+		m68k_execute(7500000/10);
+		//dosignal();
+		//QLSDLRenderScreen();
 	}
 	else {
 		ExecuteChunk(300);
