@@ -31,6 +31,7 @@
 
 #include "m68k.h"
 #include "sqlux_hook_pc.h"
+#include "sqlux_swap_cpu.h"
 
 static short ramItem = -1;
 extern int do_update;
@@ -347,10 +348,12 @@ void InitROM(void)
 
 	init_bas_exts();
 
-	QLtrap(1, 0, 20000l);
+	//QLtrap(1, 0, 20000l);
+
+	sqlux_trap(1, 0);
 
 	/* Standard systems vars */
-	sysvars = aReg[0];
+	sysvars = m68k_get_reg(trap_ctx, M68K_REG_A0);
 
 	printf("sysvars: %x\n", sysvars);
 
