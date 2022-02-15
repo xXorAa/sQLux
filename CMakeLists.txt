@@ -94,6 +94,8 @@ add_executable(sqlux
     src/sqlux_windows.c
     src/sqlux_hexdump.c
     src/sqlux_hook_pc.c
+    src/sqlux_swap_cpu.c
+    src/sqlux_trap.c
     Musashi/m68kcpu.c
     Musashi/m68kops.c
     Musashi/m68kdasm.c
