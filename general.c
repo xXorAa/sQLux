@@ -14,6 +14,7 @@
 #include "sqlux_bdi.h"
 #include "dummies.h"
 #include "unixstuff.h"
+#include "m68k.h"
 
 #include <signal.h>
 #include <time.h>
@@ -176,6 +177,8 @@ static int ipc_rcvd = 1;
 static int ipc_previous = 0x10;
 static int ipc_return;
 static int ipc_count = 0;
+static int ipc_return;
+static uint32_t ipc_read;
 
 void ipc_exec(int command)
 {
@@ -184,11 +187,15 @@ void ipc_exec(int command)
 	switch(command) {
 	case 0x01:
 		ipc_return = 0;
+		ipc_return |= 1;
 		ipc_count = 8;
+		break;
 	case 0x0d:
 		ipc_wait = 1;
 		break;
 	}
+
+	ipc_previous = command;
 
 }
 
@@ -196,6 +203,7 @@ void ipc_write(uint8_t d)
 {
 	int command;
 
+	DEBUG_PRINT("ipc_write %x\n", d);
 	if (ipc_wait) {
 		if ((d & 0x0c) == 0x0c) {
 			ipc_rcvd <<= 1;
@@ -213,7 +221,19 @@ void ipc_write(uint8_t d)
 			}
 		}
 	} else {
-		ipc_wait = 1;
+		DEBUG_PRINT("result read %x\n", d);
+		ipc_read = 0;
+		ipc_count--;
+
+		if (ipc_return & (1 << ipc_count)) {
+			ipc_read |= 0x80;
+		}
+		ipc_read <<= 8;
+		ipc_read |= 0xa50000;
+
+		if (ipc_count == 0) {
+			ipc_wait = 1;
+		}
 	}
 }
 
@@ -273,6 +293,7 @@ rw8 ReadHWByte(aw32 addr)
 {
 	int res = 0;
 	struct timespec timer;
+	uint8_t ret_byte;
 
 	/*printf("read HWreg %x, ",addr-0x18000);*/
 
@@ -285,6 +306,17 @@ rw8 ReadHWByte(aw32 addr)
 	case 0x018020:
 		debug("Read from MDV/RS232 status");
 		debug2("PC-2=", (Ptr)pc - (Ptr)theROM - 2);
+		DEBUG_PRINT("020 read %x\n", m68k_get_reg(NULL, M68K_REG_PC));
+		if (ipc_read) {
+			ret_byte = ipc_read & 0xff;
+			ipc_read >>= 8;
+			if (ipc_read == 0xa5) {
+				ipc_read = 0;
+			}
+			DEBUG_PRINT("020 ret_byte %x\n", ret_byte);
+			return ret_byte;
+		}
+		return 2;
 		break;
 	case 0x018021:
 		/*printf("reading $18021 at pc=%x\n",(Ptr)pc-(Ptr)theROM-2);*/
