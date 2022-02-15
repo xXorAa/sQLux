@@ -9,6 +9,7 @@
 #include "general.h"
 #include "QL_screen.h"
 #include "SDL2screen.h"
+#include "sqlux_trap.h"
 
 void *m68k_memspace;
 
@@ -52,6 +53,19 @@ unsigned int ReadByte(unsigned int addr)
 unsigned int ReadWord(unsigned int addr)
 {
 	addr &= ADDR_MASK;
+
+	if (sqlux_in_trap) {
+		switch (addr) {
+		case 0:
+			printf("ins %x\n", 0x4e40 | sqlux_trap_no);
+			return 0x4e40 | sqlux_trap_no;
+			break;
+		case 2:
+			printf("ins %x\n", 0x4e71);
+			return 0x4e71;
+			break;
+		}
+	}
 
 	if ((addr >= RTOP) && (addr >=qlscreen.qm_hi))
 		return 0;
