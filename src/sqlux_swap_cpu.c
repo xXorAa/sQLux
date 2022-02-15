@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "m68k.h"
 
 void *main_ctx;
