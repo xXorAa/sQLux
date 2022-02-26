@@ -24,9 +24,14 @@
 #include "QDOS.h"
 #include "QL_screen.h"
 
+#include "m68k.h"
+
 #include "unixstuff.h"
 #include "xcodes.h"
 #include "SDL2screen.h"
+
+#include "sqlux_memory.h"
+#include "sqlux_qdos_traps.h"
 
 /* UQLX basic extensions */
 
@@ -130,6 +135,7 @@ void create_link_table(struct BAS_PFENTRY *list)
 	w16 *etab;
 	w16 *instr;
 	int fnccnt, pccnt;
+	uint32_t alcmem;
 
 	pccnt = fnccnt = f_cnt = p_cnt = 0;
 	tsize = 2 + 2 + 4 + 2; /*count,count, end markers */
@@ -156,20 +162,28 @@ void create_link_table(struct BAS_PFENTRY *list)
 		p = p->link;
 	}
 
-	reg[1] = tsize + inst_size + 12 + 100; /* some pad */
-	reg[2] = 0;
+	printf("size: %d\n", tsize + inst_size + 12 + 100);
+	//reg[1] = tsize + inst_size + 12 + 100; /* some pad */
+	m68k_set_reg(M68K_REG_D1, tsize + inst_size + 12 + 100);
+	m68k_set_reg(M68K_REG_D2, 0);
+	//reg[2] = 0;
 
 	/*printf("totsize %d, tsize %d, inst_size %d,\n reserve %d\n",reg[1],tsize,inst_size,reg[1]);*/
 #if 1
-	QLtrap(1, 0x18, 2000000);
-	if (reg[0]) {
-		fprintf(stderr, "allocation failed, QDOS error %d\n", reg[0]);
+	//QLtrap(1, 0x18, 2000000);
+	//sqlux_trap(1, MT_ALCHP);
+
+	if (m68k_get_reg(NULL, M68K_REG_D0)) {
+		fprintf(stderr, "allocation failed, QDOS error %d\n",
+				m68k_get_reg(NULL, M68K_REG_D0));
 		return;
 	}
 #endif
 #if 1
-	bext_table = aReg[0];
-	etab = (w16 *)((char *)theROM + aReg[0]);
+	alcmem = m68k_get_reg(NULL, M68K_REG_A0);
+
+	bext_table = alcmem;
+	etab = (w16 *)m68k_to_host(alcmem);
 	instr = (w16 *)((char *)etab + (((tsize + 6 + 10) >> 1) << 1));
 
 	WW(etab++, mangle_count(pccnt, p_cnt));
@@ -195,7 +209,7 @@ void create_link_table(struct BAS_PFENTRY *list)
 #if 1
 	aReg[1] = bext_table;
 
-	QLvector(0x110, 2000000); /* and BP.INIT */
+	//QLvector(0x110, 2000000); /* and BP.INIT */
 
 #endif
 }

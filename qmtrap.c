@@ -77,6 +77,7 @@ void QLtrap(int t,int id,int nMax)
 {
   /*printf("calling QLtrap #%d, d0=%x d1=%d d2=%d a0=%x a1=%x\n",t,id,reg[1],reg[2],aReg[0],aReg[1]);*/
 
+	printf("AWOOGA QLtrap\n");
   reg[0]=id;
 
   exception=32+t;
@@ -92,6 +93,7 @@ void QLvector(int which, int nMax)
   uw32 ea;
   uw16 *savedPC=pc;
   /*printf("calling QLvector %x\n",which);*/
+	printf("AWOOGA QLvector\n");
 
   ea=ReadWord(which);
 
@@ -108,6 +110,8 @@ void QLvector(int which, int nMax)
 void QLsubr(uw32 ea, int nMax)
 {
   uw16 *savedPC=pc;
+
+	printf("AWOOGA QLsubr\n");
 
   WriteLong((*m68k_sp)-=4,(w32)((Ptr)pc-(Ptr)theROM));
   SetPC(ea);

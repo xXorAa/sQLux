@@ -32,6 +32,10 @@
 #include "m68k.h"
 #include "sqlux_hook_pc.h"
 #include "sqlux_swap_cpu.h"
+#define DEBUG
+#include "sqlux_debug.h"
+#include "sqlux_memory.h"
+#include "sqlux_qdos_traps.h"
 
 static short ramItem = -1;
 extern int do_update;
@@ -321,13 +325,11 @@ void InitROM(void)
 {
 	char qvers[6];
 	char *initstr = "UQLX v%s, release\012      %s\012QDOS Version %s\012";
-	uint32_t sysvars, sxvars;
+	uint32_t sysvars, sxvars, alcmem;
 	unsigned int pc, pc_inst;
 	int sub1, sub2;
 
-#ifdef TRACE_FUNC
-	printf("Entered %s\n", __func__);
-#endif
+	DEBUG_PRINT("Entered\n");
 
 	pc = m68k_get_reg(NULL, M68K_REG_PC);
 	pc_inst = ReadWord(pc);
@@ -339,7 +341,7 @@ void InitROM(void)
 
 	sqlux_store_main_ctx();
 
-	sqlux_trap(1, 0x0);
+	sqlux_trap(1, MT_INF);
 
 	/* Standard systems vars */
 	sysvars = m68k_get_reg(NULL, M68K_REG_A0);
@@ -380,43 +382,60 @@ void InitROM(void)
 
 	/* now install TKII defaults */
 
+	/* allocate 0x6c bytes, jobid 0 */
 	m68k_set_reg(M68K_REG_D1, 0x6c);
 	m68k_set_reg(M68K_REG_D2, 0);
 
-	sqlux_trap(1, 0x18);
+	sqlux_trap(1, MT_ALCHP);
 
 	if ( m68k_get_reg(NULL, M68K_REG_D0) == 0) {
+		alcmem = m68k_get_reg(NULL, M68K_REG_A0);
 		if (V3)
 			printf("Initialising TK2 device defaults\n");
-		WriteLong(0x28070 + 0x3c, aReg[0]);
-		WriteLong(0x28070 + 0x40, 32 + aReg[0]);
-		WriteLong(0x28070 + 0x44, 64 + aReg[0]);
-		WriteWord(aReg[0], strlen(DATAD));
-		strcpy((char *)((Ptr)theROM + aReg[0] + 2), DATAD);
-		WriteWord(aReg[0] + 32, strlen(PROGD));
-		strcpy((char *)((Ptr)theROM + aReg[0] + 34), PROGD);
-		WriteWord(aReg[0] + 64, strlen(SPOOLD));
-		strcpy((char *)((Ptr)theROM + aReg[0] + 66), SPOOLD);
+		WriteLong(sysvars + 0x70 + 0x3c, alcmem);
+		WriteLong(sysvars + 0x70 + 0x40, 32 + alcmem);
+		WriteLong(sysvars + 0x70 + 0x44, 64 + alcmem);
+		WriteWord(alcmem, strlen(DATAD));
+		strcpy((char *)m68k_to_host(alcmem + 2), DATAD);
+		WriteWord(alcmem + 32, strlen(PROGD));
+		strcpy((char *)m68k_to_host(alcmem + 34), PROGD);
+		WriteWord(alcmem + 64, strlen(SPOOLD));
+		strcpy((char *)m68k_to_host(alcmem + 66), SPOOLD);
+	} else {
+		fprintf(stderr, "InitROM tk2 memory allocation failure %x\n",
+				m68k_get_reg(NULL, M68K_REG_D0));
 	}
 
 	/* link in Minerva keyboard handling */
 	if (isMinerva) {
-		reg[1] = 8;
-		reg[2] = 0;
-		QLtrap(1, 0x18, 200000);
-		if (reg[0] == 0) {
-			WW((Ptr)theROM + MIPC_CMD_ADDR, MIPC_CMD_CODE);
-			WL((Ptr)theROM + aReg[0],
-			   RL((Ptr)theROM + sxvars + 0x14));
-			WL((Ptr)theROM + aReg[0] + 4, MIPC_CMD_ADDR);
-			WL((Ptr)theROM + sxvars + 0x14, aReg[0]);
+		/* allocate 0x6c bytes, jobid 0 */
+		m68k_set_reg(M68K_REG_D1, 0x08);
+		m68k_set_reg(M68K_REG_D2, 0);
+
+		sqlux_trap(1, MT_ALCHP);
+
+		if (m68k_get_reg(NULL, M68K_REG_D0) == 0) {
+			alcmem = m68k_get_reg(NULL, M68K_REG_A0);
+			hook_callbacks[ROM_MIPC_CMD].addr = MIPC_CMD_ADDR;
+			WriteLong(alcmem, ReadLong(sxvars + 0x14));
+			WriteLong(alcmem + 4, MIPC_CMD_ADDR);
+			WriteLong(sxvars + 0x14, alcmem);
+		} else {
+			fprintf(stderr,
+				"InitROM minerva memory allocation failure %x\n",
+				m68k_get_reg(NULL, M68K_REG_D0));
 		}
+
 		WW((Ptr)theROM + KBENC_CMD_ADDR, KBENC_CMD_CODE);
 		orig_kbenc = RL((Ptr)theROM + sxvars + 0x10);
 		WL((Ptr)theROM + sxvars + 0x10, KBENC_CMD_ADDR);
 	}
 
 	init_poll();
+
+	sqlux_restore_main_ctx();
+
+	DEBUG_PRINT("Exited\n");
 }
 
 #if 0

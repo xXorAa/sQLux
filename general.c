@@ -258,8 +258,8 @@ void WriteHWByte(aw32 addr, aw8 d)
 		}
 		break;
 	case 0x018003:
-		DEBUG_PRINT("IPC data %x\n", d);
-		ipc_write(d);
+		//DEBUG_PRINT("IPC data %x\n", d);
+		//ipc_write(d);
 		break;
 	case 0x018020:
 		WriteMdvControl(d); /*TRR;*/
@@ -306,14 +306,14 @@ rw8 ReadHWByte(aw32 addr)
 	case 0x018020:
 		debug("Read from MDV/RS232 status");
 		debug2("PC-2=", (Ptr)pc - (Ptr)theROM - 2);
-		DEBUG_PRINT("020 read %x\n", m68k_get_reg(NULL, M68K_REG_PC));
+		//DEBUG_PRINT("020 read %x\n", m68k_get_reg(NULL, M68K_REG_PC));
 		if (ipc_read) {
 			ret_byte = ipc_read & 0xff;
 			ipc_read >>= 8;
 			if (ipc_read == 0xa5) {
 				ipc_read = 0;
 			}
-			DEBUG_PRINT("020 ret_byte %x\n", ret_byte);
+			//DEBUG_PRINT("020 ret_byte %x\n", ret_byte);
 			return ret_byte;
 		}
 		return 2;

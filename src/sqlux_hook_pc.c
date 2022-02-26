@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "m68k.h"
+#include "QL_hardware.h"
 #include "SDL2screen.h"
 #include "sqlux_hook_pc.h"
 #include "sqlux_trap.h"
@@ -15,6 +16,7 @@ static int init_rom = 0;
 
 hook_callbacks_t hook_callbacks[ROM_MAX_HOOK] = {
 [ROM_INIT_HOOK] = { 0x8292, InitROM },
+[ROM_MIPC_CMD] = { 0xFFFFFFFF, KbdCmd },
 };
 
 void sqlux_hook_pc(unsigned int pc)

@@ -26,6 +26,8 @@
 #include "QDOS.h"
 #include "QSerial.h"
 
+#include "m68k.h"
+
 #define MDV_ID 0x28b07ae4
 
 extern void rts(void);
@@ -198,20 +200,29 @@ static void InitDirDevDriver(Str255 name, w32 addr, w32 *fsid)
 {
 	w32 savedRegs[4];
 	w32 *p;
+	int namelen;
 
 	/*printf("Init driver %s\n",name);*/
 
-	BlockMoveData(aReg, savedRegs, 4 * sizeof(w32));
-	reg[1] = 38 + strlen(name);
-	if ((strlen(name) & 1) != 0)
-		reg[1]++;
-	reg[2] = 0;
-	QLtrap(1, 0x18,
-	       20000l); /* allocate memory for the driver linkage block */
-	if ((*reg) == 0) {
-#if 1
-		*fsid = aReg[0];
-		p = (w32 *)(aReg[0] + (Ptr)theROM + 4);
+	//BlockMoveData(aReg, savedRegs, 4 * sizeof(w32));
+	namelen = 38 + strlen(name);
+	if (namelen & 1) {
+		namelen ++;
+	}
+	m68k_set_reg(M68K_REG_D1, namelen);
+	//reg[1] = 38 + strlen(name);
+	//if ((strlen(name) & 1) != 0)
+	//	reg[1]++;
+	//reg[2] = 0;
+	m68k_set_reg(M68K_REG_D2, 0);
+	//QLtrap(1, 0x18,
+	//      20000l); /* allocate memory for the driver linkage block */
+	if (m68k_get_reg(NULL, M68K_REG_D0) == 0) {
+		//*fsid =aReg[0];
+		*fsid = m68k_get_reg(NULL, M68K_REG_A0);
+		//p = (w32 *)(aReg[0] + (Ptr)theROM + 4);
+		p = (w32 *)(m68k_get_reg(NULL, M68K_REG_A0) + (void *)theROM + 4);
+		printf("GOT HERE\n");
 		WL(p++, addr);
 		WL(p++, addr + 2);
 		WL(p++, addr + 4);
@@ -220,50 +231,16 @@ static void InitDirDevDriver(Str255 name, w32 addr, w32 *fsid)
 		WL(p++, addr + 8);
 		WL(p++, 36);
 		WL(p, 0);
-#endif
-#if 0
-      *fsid=aReg[0];
-      p=(w32*)(aReg[0]+(Ptr)theROM+4);
-      *p++=addr;
-      *p++=addr+2;
-      *p++=addr+4;
-      *p=addr+6;
-      p+=3;
-      *p++=addr+8;
-      *p++=36;
-      *p=0;
-#endif
 		BlockMoveData(name, (Ptr)p + 2, strlen(name) + 1);
 		WW((Ptr)p, strlen(name)); /* *(uw16*)p=strlen(name);*/
+		printf("GOT HERE 2\n");
 
-		QLtrap(1, 0x22,
-		       20000l); /* link directory device driver in IOSS */
+		//QLtrap(1, 0x22,
+		//       20000l); /* link directory device driver in IOSS */
+		sqlux_trap(1, 0x22);
 	}
 	BlockMoveData(savedRegs, aReg, 4 * sizeof(w32));
 }
-#if 0
-void InitFileDrivers(Str255 floppyName,Str255 hDiskName)
-{
-  short i;
-  mdvHeaders[0]=mdvHeaders[14]=255;
-  mdvHeaders[1]=mdvHeaders[15]=0;
-  if(floppyName!=nil)
-    {
-      i=strlen(floppyName)-1;
-      /*while(i>-1) floppyName[i--]&=223; */
-      InitDirDevDriver(floppyName,0x14000,&floppy_ref);
-    }
-  if(hDiskName!=nil)
-    {
-      i=strlen(hDiskName)-1;
-      /*while(i>-1) hDiskName[i--]&=223;*/
-      InitDirDevDriver(hDiskName,0x14000,&win_ref);
-    }
-  InitDirDevDriver("MDV",0x14000,&mdv_ref);
-
-  InstallSerial();
-}
-#endif
 
 void *Cleandir(char *nam)
 {

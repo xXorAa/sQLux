@@ -6,6 +6,7 @@
 extern int display_mode;
 void queueKey(short m,short code,uw16 asciiChar);
 void MReadKbd(void);
+void KbdCmd(void);
 
 #endif /* _QL_HARDWARE_H */
 
