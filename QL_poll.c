@@ -15,6 +15,10 @@
 #include "QL_hardware.h"
 #include "unix.h"
 
+#include "m68k.h"
+#include "sqlux_memory.h"
+#include "sqlux_qdos_traps.h"
+
 /*extern int schedCount;*/
 extern volatile int poll_req;
 
@@ -29,20 +33,27 @@ extern uw16 asciiChar;
 
 void init_poll()
 {
-  reg[1]=0x10;
-  reg[2]=0;
-  QLtrap(1,0x18,2000000l);
+	void *p;
+  //reg[1]=0x10;
+  //reg[2]=0;
+  //QLtrap(1,0x18,2000000l);
+	m68k_set_reg(M68K_REG_D1, 0x10);
+	m68k_set_reg(M68K_REG_D2, 0);
+	sqlux_trap(1, MT_ALCHP);
 
-  if (*reg==0)
-    {
-      Ptr p=(Ptr)theROM+aReg[0];
-      p = p + 4;
+  	if (m68k_get_reg(NULL, M68K_REG_D0) == 0)
+    	{
+      		//Ptr p=(Ptr)theROM+aReg[0];
+		p = m68k_to_host(m68k_get_reg(NULL, M68K_REG_A0));
+		p = p + 4;
 
-      WL( p, POLL_CMD_ADDR);
-      WW((Ptr)theROM+POLL_CMD_ADDR, POLL_CMD_CODE);
+		WL( p, POLL_CMD_ADDR);
+		WW((Ptr)theROM+POLL_CMD_ADDR, POLL_CMD_CODE);
 
-      QLtrap(1,0x1c,200000l);
-    }
+		//QLtrap(1,0x1c,200000l);
+
+		sqlux_trap(1, MT_LPOLL);
+	}
 }
 
 

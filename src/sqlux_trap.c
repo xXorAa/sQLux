@@ -13,6 +13,7 @@ void sqlux_trap(int trapno, int d0)
 	DEBUG_PRINT("Starting TRAP %d\n", trapno);
 
 	m68k_set_reg(M68K_REG_PC, 0);
+	m68k_set_reg(M68K_REG_D0, d0);
 
 	sqlux_in_trap = 1;
 	sqlux_trap_no = trapno;

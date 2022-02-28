@@ -350,13 +350,13 @@ void InitROM(void)
 	WriteLong(sysvars + 0x48, 0);
 
 	InitFileDrivers();
-	InitDrivers();
+	//InitDrivers();
 
-	init_xscreen();
+	//init_xscreen();
 
-	SchedInit();
+	//SchedInit();
 
-	init_bas_exts();
+	//init_bas_exts();
 
 
 	/* Minerva extended vars */

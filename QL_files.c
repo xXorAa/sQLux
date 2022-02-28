@@ -27,6 +27,7 @@
 #include "QSerial.h"
 
 #include "m68k.h"
+#include "sqlux_qdos_traps.h"
 
 #define MDV_ID 0x28b07ae4
 
@@ -202,7 +203,7 @@ static void InitDirDevDriver(Str255 name, w32 addr, w32 *fsid)
 	w32 *p;
 	int namelen;
 
-	/*printf("Init driver %s\n",name);*/
+	printf("Init driver %s\n",name);
 
 	//BlockMoveData(aReg, savedRegs, 4 * sizeof(w32));
 	namelen = 38 + strlen(name);
@@ -217,9 +218,12 @@ static void InitDirDevDriver(Str255 name, w32 addr, w32 *fsid)
 	m68k_set_reg(M68K_REG_D2, 0);
 	//QLtrap(1, 0x18,
 	//      20000l); /* allocate memory for the driver linkage block */
+	sqlux_trap(1, MT_ALCHP);
 	if (m68k_get_reg(NULL, M68K_REG_D0) == 0) {
+		printf("Allocated: %d\n", m68k_get_reg(NULL, M68K_REG_D1));
 		//*fsid =aReg[0];
 		*fsid = m68k_get_reg(NULL, M68K_REG_A0);
+		printf("fsid %x\n", *fsid);
 		//p = (w32 *)(aReg[0] + (Ptr)theROM + 4);
 		p = (w32 *)(m68k_get_reg(NULL, M68K_REG_A0) + (void *)theROM + 4);
 		printf("GOT HERE\n");
@@ -239,7 +243,7 @@ static void InitDirDevDriver(Str255 name, w32 addr, w32 *fsid)
 		//       20000l); /* link directory device driver in IOSS */
 		sqlux_trap(1, 0x22);
 	}
-	BlockMoveData(savedRegs, aReg, 4 * sizeof(w32));
+	//BlockMoveData(savedRegs, aReg, 4 * sizeof(w32));
 }
 
 void *Cleandir(char *nam)
@@ -340,7 +344,7 @@ void InitFileDrivers()
 
 	for (i = MAXDEV - 1; i >= 0; i--) {
 		if (qdevs[i].qname) {
-			/*printf("Initialising %s\n", qdevs[i].qname);*/
+			printf("Initialising %s\n", qdevs[i].qname);
 
 			for (j = 0; j < 8; j++)
 				if (qdevs[i].Present[j])
@@ -351,8 +355,8 @@ void InitFileDrivers()
 		}
 	}
 
-	InstallSerial();
-	InitRAMDev("RAM");
+	//InstallSerial();
+	//InitRAMDev("RAM");
 }
 
 w32 PhysicalDefBlock(void)
